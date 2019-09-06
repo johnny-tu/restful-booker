@@ -41,26 +41,42 @@ public class BookingController {
 	}
 	
 	@RequestMapping(value = "/booking/{id}", method = RequestMethod.GET)
-	public Booking getBookingById(@PathVariable("id") ObjectId id) {
-		return repository.findBy_id(id);
+	public ResponseEntity getBookingById(@PathVariable("id") ObjectId id) {
+		Booking booking = repository.findBy_id(id);
+		if (booking != null) {
+			return new ResponseEntity(booking, HttpStatus.OK);
+		} 
+		else {
+			return new ResponseEntity("Not Found", HttpStatus.NOT_FOUND);
+		}
 	}
 	
 	@RequestMapping(value = "/booking/{id}", method = RequestMethod.PUT)
 	public ResponseEntity modifyBookingById(@PathVariable("id") ObjectId id, @Valid @RequestBody Booking booking, @RequestHeader HttpHeaders headers) {
+		/*
 		List<String> cookie = headers.get("Cookie");
 		String cookieString = cookie.get(0);
 		String token = cookieString.substring(cookieString.indexOf("=")+1); 
 		
-		if (cookie == null) {
-			return new ResponseEntity("Forbidden", HttpStatus.FORBIDDEN);
-		}
-		else if (authTokens.get(token) == null) {
-			return new ResponseEntity("Invalid API Token", HttpStatus.FORBIDDEN);
+		System.out.println("cookie : " + cookie);
+		System.out.println("cookieString : " + cookieString);
+		System.out.println("token : " + token);
+		*/
+		
+		String checkAuthTokenResponse = checkAuthToken(headers);
+		if (checkAuthTokenResponse != "") {
+			return new ResponseEntity(checkAuthTokenResponse, HttpStatus.FORBIDDEN);
 		}
 		else {
-			booking.set_Id(id);
-			repository.save(booking);
-			return new ResponseEntity(booking, HttpStatus.OK);
+			//Check that booking exists, otherwise return NOT FOUND
+			if (repository.findBy_id(id) != null) {
+				booking.set_Id(id);
+				repository.save(booking);
+				return new ResponseEntity(booking, HttpStatus.OK);
+			}
+			else {
+				return new ResponseEntity("Not Found", HttpStatus.NOT_FOUND);
+			}
 		}
 	}
 	
@@ -75,6 +91,7 @@ public class BookingController {
 	public ResponseEntity deleteBooking(@PathVariable ObjectId id, @RequestHeader HttpHeaders headers) {
 		System.out.println(authTokens);
 		
+		/*
 		List<String> cookie = headers.get("Cookie");
 		String cookieString = cookie.get(0);
 		String token = cookieString.substring(cookieString.indexOf("=")+1); 
@@ -84,6 +101,12 @@ public class BookingController {
 		}
 		else if (authTokens.get(token) == null) {
 			return new ResponseEntity("Invalid API Token", HttpStatus.FORBIDDEN);
+		}
+		*/
+		String checkAuthTokenResponse = checkAuthToken(headers);
+		System.out.println(checkAuthTokenResponse);
+		if (checkAuthTokenResponse != "") {
+			return new ResponseEntity(checkAuthTokenResponse, HttpStatus.FORBIDDEN);
 		}
 		else {
 			Booking booking = repository.findBy_id(id);
@@ -115,12 +138,17 @@ public class BookingController {
 		return map;
 	}
 	
+	@RequestMapping(value = "/ping", method = RequestMethod.GET)
+	public String ping() {
+		return "Application Running";
+	}
+	
 	private String checkAuthToken(HttpHeaders headers) {
 		List<String> cookie = headers.get("Cookie");
 		String cookieString = cookie.get(0);
 		String token = cookieString.substring(cookieString.indexOf("=")+1); 
 		
-		String response = new String(); 
+		String response = ""; 
 		
 		if (cookie == null) {
 			response = "Forbidden";
